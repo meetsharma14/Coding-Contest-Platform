@@ -5,6 +5,8 @@
 # declarative_base -> Base class for models
 # ==================================
 
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import (
     sessionmaker,
@@ -14,25 +16,44 @@ from sqlalchemy.orm import (
 
 # ==================================
 # DATABASE CONFIGURATION
-# SQLite database file
-# Can later be changed to MySQL/PostgreSQL
+#
+# Reads DATABASE_URL from environment.
+# Defaults to local SQLite for development.
+#
+# For production (e.g. Render), set:
+#   DATABASE_URL=postgresql://user:pass@host/db
 # ==================================
 
-DATABASE_URL = "sqlite:///./coding_contest.db"
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "sqlite:///./coding_contest.db"
+)
+
+# Render provides postgres:// but SQLAlchemy
+# requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
 
 
 # ==================================
 # CREATE DATABASE ENGINE
-# check_same_thread=False:
-# Allows multiple requests to access
-# SQLite in FastAPI
+#
+# check_same_thread is only needed
+# for SQLite connections
 # ==================================
+
+connect_args = {}
+
+if DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={
-        "check_same_thread": False
-    }
+    connect_args=connect_args
 )
 
 
