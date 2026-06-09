@@ -2,6 +2,8 @@
 # FASTAPI IMPORTS
 # ==================================
 
+import os
+
 # Main FastAPI framework
 from fastapi import FastAPI
 
@@ -105,11 +107,11 @@ app.add_middleware(
     CORSMiddleware,
 
     allow_origins=[
-
-        # Streamlit local server
-        "http://localhost:8501",
-
-        "http://127.0.0.1:8501"
+        origin.strip()
+        for origin in os.environ.get(
+            "CORS_ORIGINS",
+            "http://localhost:8501,http://127.0.0.1:8501"
+        ).split(",")
     ],
 
     # Allow cookies/tokens
