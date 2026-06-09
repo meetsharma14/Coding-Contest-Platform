@@ -51,9 +51,17 @@ connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
 
+engine_kwargs = {
+    "connect_args": connect_args,
+}
+
+# Detect stale connections on cloud PostgreSQL
+if not DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["pool_pre_ping"] = True
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args
+    **engine_kwargs
 )
 
 
