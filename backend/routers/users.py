@@ -35,6 +35,12 @@ from auth import (
     get_current_user
 )
 
+# Shared CRUD utilities
+from crud import (
+    save_and_refresh,
+    check_unique_or_400
+)
+
 
 # ==================================
 # ROUTER CONFIGURATION
@@ -71,50 +77,18 @@ def register(
 ):
 
     # Check if username exists
-    existing_username = (
-
-        db.query(User)
-
-        .filter(
-            User.username
-            == user.username
-        )
-
-        .first()
+    check_unique_or_400(
+        db, User,
+        User.username, user.username,
+        "Username already exists"
     )
-
-    if existing_username:
-
-        raise HTTPException(
-
-            status_code=400,
-
-            detail=
-            "Username already exists"
-        )
 
     # Check if email exists
-    existing_email = (
-
-        db.query(User)
-
-        .filter(
-            User.email
-            == user.email
-        )
-
-        .first()
+    check_unique_or_400(
+        db, User,
+        User.email, user.email,
+        "Email already exists"
     )
-
-    if existing_email:
-
-        raise HTTPException(
-
-            status_code=400,
-
-            detail=
-            "Email already exists"
-        )
 
     # Create new user object
     new_user = User(
@@ -135,20 +109,10 @@ def register(
             "participant"
     )
 
-    # Add to database session
-    db.add(
-        new_user
+    # Save and return
+    return save_and_refresh(
+        db, new_user
     )
-
-    # Save data
-    db.commit()
-
-    # Refresh object and get generated fields
-    db.refresh(
-        new_user
-    )
-
-    return new_user
 
 
 # ==================================

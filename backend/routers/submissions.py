@@ -36,6 +36,12 @@ from auth import (
 # Online judge logic
 from judge import run_python_code
 
+# Shared CRUD utilities
+from crud import (
+    get_or_404,
+    save_and_refresh
+)
+
 
 # ==================================
 # ROUTER CONFIGURATION
@@ -107,31 +113,11 @@ def submit_solution(
 ):
 
     # Check whether problem exists
-    problem = (
-
-        db.query(
-            Problem
-        )
-
-        .filter(
-
-            Problem.id ==
-            submission.problem_id
-
-        )
-
-        .first()
+    get_or_404(
+        db, Problem,
+        submission.problem_id,
+        "Problem not found"
     )
-
-    if not problem:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail=
-            "Problem not found"
-        )
 
     # Load test cases
     test_cases = SAMPLE_TEST_CASES.get(
@@ -182,18 +168,10 @@ def submit_solution(
             judge_result["runtime_ms"]
     )
 
-    # Save submission
-    db.add(
-        new_submission
+    # Save and return
+    return save_and_refresh(
+        db, new_submission
     )
-
-    db.commit()
-
-    db.refresh(
-        new_submission
-    )
-
-    return new_submission
 
 
 # ==================================
@@ -264,30 +242,7 @@ def get_submission(
     )
 ):
 
-    # Search submission
-    submission = (
-
-        db.query(
-            Submission
-        )
-
-        .filter(
-
-            Submission.id ==
-            submission_id
-        )
-
-        .first()
+    return get_or_404(
+        db, Submission, submission_id,
+        "Submission not found"
     )
-
-    if not submission:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail=
-            "Submission not found"
-        )
-
-    return submission

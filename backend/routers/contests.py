@@ -38,6 +38,12 @@ from auth import (
     get_current_user
 )
 
+# Shared CRUD utilities
+from crud import (
+    get_or_404,
+    save_and_refresh
+)
+
 
 # ==================================
 # ROUTER CONFIGURATION
@@ -51,6 +57,30 @@ router = APIRouter(
     # Swagger documentation group
     tags=["Contests"]
 )
+
+
+# ==================================
+# TOGGLE CONTEST STATUS HELPER
+# ==================================
+
+def _set_contest_active(
+    contest_id: int,
+    is_active: bool,
+    db: Session,
+    message: str
+):
+    """Shared helper to activate or deactivate a contest."""
+
+    contest = get_or_404(
+        db, Contest, contest_id,
+        "Contest not found"
+    )
+
+    contest.is_active = is_active
+
+    db.commit()
+
+    return {"message": message}
 
 
 # ==================================
@@ -91,14 +121,10 @@ def create_contest(
         is_active=False
     )
 
-    # Save in database
-    db.add(new_contest)
-
-    db.commit()
-
-    db.refresh(new_contest)
-
-    return new_contest
+    # Save and return
+    return save_and_refresh(
+        db, new_contest
+    )
 
 
 # ==================================
@@ -135,27 +161,10 @@ def get_contest(
     )
 ):
 
-    # Search contest
-    contest = (
-
-        db.query(Contest)
-
-        .filter(
-            Contest.id == contest_id
-        )
-
-        .first()
+    return get_or_404(
+        db, Contest, contest_id,
+        "Contest not found"
     )
-
-    # Contest not found
-    if not contest:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Contest not found"
-        )
-
-    return contest
 
 
 # ==================================
@@ -181,42 +190,16 @@ def add_problem_to_contest(
 ):
 
     # Verify contest exists
-    contest = (
-
-        db.query(Contest)
-
-        .filter(
-            Contest.id == contest_id
-        )
-
-        .first()
+    get_or_404(
+        db, Contest, contest_id,
+        "Contest not found"
     )
-
-    if not contest:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Contest not found"
-        )
 
     # Verify problem exists
-    problem = (
-
-        db.query(Problem)
-
-        .filter(
-            Problem.id == problem_id
-        )
-
-        .first()
+    get_or_404(
+        db, Problem, problem_id,
+        "Problem not found"
     )
-
-    if not problem:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Problem not found"
-        )
 
     # Create link table entry
     link = ContestProblem(
@@ -256,33 +239,10 @@ def start_contest(
     )
 ):
 
-    contest = (
-
-        db.query(Contest)
-
-        .filter(
-            Contest.id == contest_id
-        )
-
-        .first()
-    )
-
-    if not contest:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Contest not found"
-        )
-
-    # Change status
-    contest.is_active = True
-
-    db.commit()
-
-    return {
-        "message":
+    return _set_contest_active(
+        contest_id, True, db,
         "Contest started"
-    }
+    )
 
 
 # ==================================
@@ -305,33 +265,10 @@ def end_contest(
     )
 ):
 
-    contest = (
-
-        db.query(Contest)
-
-        .filter(
-            Contest.id == contest_id
-        )
-
-        .first()
-    )
-
-    if not contest:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Contest not found"
-        )
-
-    # Change status
-    contest.is_active = False
-
-    db.commit()
-
-    return {
-        "message":
+    return _set_contest_active(
+        contest_id, False, db,
         "Contest ended"
-    }
+    )
 
 
 # ==================================

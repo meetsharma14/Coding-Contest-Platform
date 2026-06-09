@@ -1,8 +1,6 @@
 import streamlit as st
-import requests
 import pandas as pd
-
-API_BASE_URL = "https://coding-contest-platform-gv03.onrender.com/"
+from api_client import api_get, api_post
 
 
 # ==========================
@@ -66,9 +64,9 @@ def register():
             "password": password
         }
 
-        r = requests.post(
-            f"{API_BASE_URL}/users/register",
-            json=payload
+        r = api_post(
+            "/users/register",
+            payload
         )
 
         if r.status_code in [200,201]:
@@ -107,9 +105,9 @@ def login():
             "password": password
         }
 
-        r = requests.post(
-            f"{API_BASE_URL}/users/login",
-            json=payload
+        r = api_post(
+            "/users/login",
+            payload
         )
 
         if r.status_code == 200:
@@ -161,9 +159,7 @@ def problems_page():
 
     try:
 
-        r = requests.get(
-            f"{API_BASE_URL}/problems/"
-        )
+        r = api_get("/problems/")
 
         if r.status_code == 200:
 
@@ -190,8 +186,8 @@ def problems_page():
                     "Load Problem"
                 ):
 
-                    pr = requests.get(
-                        f"{API_BASE_URL}/problems/{problem_id}"
+                    pr = api_get(
+                        f"/problems/{problem_id}"
                     )
 
                     if pr.status_code == 200:
@@ -287,9 +283,9 @@ def admin_panel():
             "sample_output": sample_output
         }
 
-        r = requests.post(
-            f"{API_BASE_URL}/problems/",
-            json=payload
+        r = api_post(
+            "/problems/",
+            payload
         )
 
         if r.status_code in [200,201]:
