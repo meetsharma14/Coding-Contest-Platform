@@ -6,7 +6,9 @@
 # EmailStr → validates email format
 from pydantic import (
     BaseModel,
-    EmailStr
+    EmailStr,
+    field_validator,
+    Field
 )
 
 # Used for date and time fields
@@ -14,6 +16,9 @@ from datetime import datetime
 
 # Used for optional values
 from typing import Optional
+
+from enum import Enum
+import re
 
 
 # ==================================
@@ -23,12 +28,19 @@ from typing import Optional
 # Input schema for user registration
 class UserCreate(BaseModel):
 
-    username: str
+    username: str = Field(
+        min_length=3,
+        max_length=50,
+        pattern=r"^[a-zA-Z0-9_]+$"
+    )
 
     # Automatically validates email
     email: EmailStr
 
-    password: str
+    password: str = Field(
+        min_length=8,
+        max_length=128
+    )
 
 
 # Input schema for login
@@ -84,17 +96,39 @@ class TokenData(BaseModel):
 
 # Input schema for creating
 # a coding problem
+ALLOWED_DIFFICULTIES = {
+    "Easy", "Medium", "Hard"
+}
+
+
 class ProblemCreate(BaseModel):
 
-    title: str
+    title: str = Field(
+        min_length=1,
+        max_length=255
+    )
 
     difficulty: str
 
-    description: str
+    description: str = Field(
+        min_length=1
+    )
 
     sample_input: Optional[str] = None
 
     sample_output: Optional[str] = None
+
+    @field_validator("difficulty")
+    @classmethod
+    def validate_difficulty(
+        cls, v: str
+    ) -> str:
+        if v not in ALLOWED_DIFFICULTIES:
+            raise ValueError(
+                f"difficulty must be one of: "
+                f"{', '.join(sorted(ALLOWED_DIFFICULTIES))}"
+            )
+        return v
 
 
 # Output schema returned
@@ -161,14 +195,34 @@ class ContestResponse(BaseModel):
 # ==================================
 
 # Input schema for solution submission
+ALLOWED_LANGUAGES = {
+    "python"
+}
+
+
 class SubmissionCreate(BaseModel):
 
     problem_id: int
 
-    code: str
+    code: str = Field(
+        min_length=1,
+        max_length=50000
+    )
 
     # Default language
     language: str = "python"
+
+    @field_validator("language")
+    @classmethod
+    def validate_language(
+        cls, v: str
+    ) -> str:
+        if v not in ALLOWED_LANGUAGES:
+            raise ValueError(
+                f"language must be one of: "
+                f"{', '.join(sorted(ALLOWED_LANGUAGES))}"
+            )
+        return v
 
 
 # Output schema for submissions

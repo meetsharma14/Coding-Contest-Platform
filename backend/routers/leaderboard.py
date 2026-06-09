@@ -3,7 +3,7 @@
 # ==================================
 
 # FastAPI router and dependency injection
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 # Database session
 from sqlalchemy.orm import Session
@@ -232,10 +232,10 @@ def user_stats(
     # User not found
     if not user:
 
-        return {
-            "error":
-            "User not found"
-        }
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
 
     # Get user submissions
     submissions = (

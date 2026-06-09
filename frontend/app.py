@@ -287,9 +287,16 @@ def admin_panel():
             "sample_output": sample_output
         }
 
+        headers = {}
+        if st.session_state.token:
+            headers["Authorization"] = (
+                f"Bearer {st.session_state.token}"
+            )
+
         r = requests.post(
             f"{API_BASE_URL}/problems/",
-            json=payload
+            json=payload,
+            headers=headers
         )
 
         if r.status_code in [200,201]:
