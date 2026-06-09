@@ -13,6 +13,14 @@ from fastapi import (
 # Database session
 from sqlalchemy.orm import Session
 
+# Database error handling
+from sqlalchemy.exc import IntegrityError
+
+# Logging
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Database connection dependency
 from database import get_db
 
@@ -140,13 +148,34 @@ def register(
         new_user
     )
 
-    # Save data
-    db.commit()
+    try:
 
-    # Refresh object and get generated fields
-    db.refresh(
-        new_user
-    )
+        # Save data
+        db.commit()
+
+        # Refresh object and get generated fields
+        db.refresh(
+            new_user
+        )
+
+    except IntegrityError:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Username or email already exists"
+        )
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Registration failed: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Registration failed due to a server error"
+        )
 
     return new_user
 

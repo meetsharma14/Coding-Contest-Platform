@@ -92,6 +92,12 @@ def get_db():
         # Give database session
         yield db
 
+    except Exception:
+
+        # Rollback on any error
+        db.rollback()
+        raise
+
     finally:
 
         # Close session after use
