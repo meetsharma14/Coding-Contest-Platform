@@ -3,7 +3,7 @@
 # ==================================
 
 # FastAPI router and dependency injection
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 # Database session
 from sqlalchemy.orm import Session
@@ -16,6 +16,9 @@ from database import get_db
 
 # Database models
 from models import User, Submission
+
+# Shared CRUD utilities
+from crud import get_or_404
 
 
 # ==================================
@@ -33,6 +36,19 @@ router = APIRouter(
 
 
 # ==================================
+# SHARED SCORE EXPRESSION
+# ==================================
+
+def _total_score_expr():
+    """Reusable aggregate expression for total user score."""
+
+    return func.coalesce(
+        func.sum(Submission.score),
+        0
+    )
+
+
+# ==================================
 # GLOBAL LEADERBOARD
 # ==================================
 
@@ -41,6 +57,8 @@ def global_leaderboard(
 
     db: Session = Depends(get_db)
 ):
+
+    score_expr = _total_score_expr()
 
     # Query leaderboard statistics
     results = (
@@ -52,12 +70,7 @@ def global_leaderboard(
             User.username,
 
             # Total score of all submissions
-            func.coalesce(
-                func.sum(
-                    Submission.score
-                ),
-                0
-            ).label(
+            score_expr.label(
                 "total_score"
             ),
 
@@ -93,13 +106,7 @@ def global_leaderboard(
 
         # Sort by highest score
         .order_by(
-
-            func.coalesce(
-                func.sum(
-                    Submission.score
-                ),
-                0
-            ).desc()
+            score_expr.desc()
         )
 
         .all()
@@ -151,6 +158,8 @@ def top_10_users(
     )
 ):
 
+    score_expr = _total_score_expr()
+
     results = (
 
         db.query(
@@ -158,12 +167,7 @@ def top_10_users(
             User.username,
 
             # Sum total score
-            func.coalesce(
-                func.sum(
-                    Submission.score
-                ),
-                0
-            ).label(
+            score_expr.label(
                 "score"
             )
         )
@@ -183,13 +187,7 @@ def top_10_users(
 
         # Sort highest score first
         .order_by(
-
-            func.coalesce(
-                func.sum(
-                    Submission.score
-                ),
-                0
-            ).desc()
+            score_expr.desc()
         )
 
         # Limit to top 10
@@ -217,25 +215,11 @@ def user_stats(
     )
 ):
 
-    # Find user
-    user = (
-
-        db.query(User)
-
-        .filter(
-            User.id == user_id
-        )
-
-        .first()
+    # Find user or 404
+    user = get_or_404(
+        db, User, user_id,
+        "User not found"
     )
-
-    # User not found
-    if not user:
-
-        return {
-            "error":
-            "User not found"
-        }
 
     # Get user submissions
     submissions = (

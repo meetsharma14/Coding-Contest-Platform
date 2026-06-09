@@ -6,7 +6,6 @@
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
     Query,
     status
 )
@@ -30,6 +29,13 @@ from schemas import (
 from auth import (
     get_current_user,
     get_admin_user
+)
+
+# Shared CRUD utilities
+from crud import (
+    get_or_404,
+    save_and_refresh,
+    check_unique_or_400
 )
 
 
@@ -73,28 +79,11 @@ def create_problem(
 ):
 
     # Check whether problem already exists
-    existing_problem = (
-
-        db.query(Problem)
-
-        .filter(
-            Problem.title ==
-            problem.title
-        )
-
-        .first()
+    check_unique_or_400(
+        db, Problem,
+        Problem.title, problem.title,
+        "Problem already exists"
     )
-
-    # Duplicate problem validation
-    if existing_problem:
-
-        raise HTTPException(
-
-            status_code=400,
-
-            detail=
-            "Problem already exists"
-        )
 
     # Create new database object
     new_problem = Problem(
@@ -112,20 +101,10 @@ def create_problem(
             problem.sample_output
     )
 
-    # Add object to database session
-    db.add(
-        new_problem
+    # Save and return
+    return save_and_refresh(
+        db, new_problem
     )
-
-    # Save changes
-    db.commit()
-
-    # Refresh object and get generated values
-    db.refresh(
-        new_problem
-    )
-
-    return new_problem
 
 
 # ==================================
@@ -190,35 +169,10 @@ def get_problem(
     )
 ):
 
-    # Search by ID
-    problem = (
-
-        db.query(
-            Problem
-        )
-
-        .filter(
-
-            Problem.id
-            == problem_id
-
-        )
-
-        .first()
+    return get_or_404(
+        db, Problem, problem_id,
+        "Problem not found"
     )
-
-    # Problem not found
-    if not problem:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail=
-            "Problem not found"
-        )
-
-    return problem
 
 
 # ==================================
@@ -243,31 +197,10 @@ def delete_problem(
 ):
 
     # Find problem
-    problem = (
-
-        db.query(
-            Problem
-        )
-
-        .filter(
-
-            Problem.id
-            == problem_id
-        )
-
-        .first()
+    problem = get_or_404(
+        db, Problem, problem_id,
+        "Problem not found"
     )
-
-    # Problem does not exist
-    if not problem:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail=
-            "Problem not found"
-        )
 
     # Remove from database
     db.delete(
