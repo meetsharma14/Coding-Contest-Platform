@@ -2,6 +2,9 @@
 # IMPORTS
 # ==================================
 
+import os
+import secrets
+
 # Used for token expiry time calculations
 from datetime import datetime, timedelta
 
@@ -39,7 +42,16 @@ from models import User
 # ==================================
 
 # Secret key for signing JWT tokens
-SECRET_KEY = "change_this_to_a_long_random_secret_key"
+# MUST be set via the SECRET_KEY environment variable in production
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY"
+)
+
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is not set. "
+        "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(64))'"
+    )
 
 # JWT encryption algorithm
 ALGORITHM = "HS256"

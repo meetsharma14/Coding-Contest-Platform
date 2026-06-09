@@ -17,7 +17,10 @@ import time
 # containers for security
 # ==================================
 
-def run_python_code(code: str):
+def run_python_code(
+    code: str,
+    test_cases: list | None = None
+):
 
     """
     Temporary online judge.
@@ -34,10 +37,6 @@ def run_python_code(code: str):
         # COMPILE USER CODE
         #
         # Checks syntax errors only
-        #
-        # Example:
-        # def solve():
-        #     print("Hello")
         #
         # Does NOT execute code
         # ==================================
@@ -70,7 +69,7 @@ def run_python_code(code: str):
             "runtime_ms": runtime_ms
         }
 
-    except Exception as e:
+    except SyntaxError as e:
 
         # ==================================
         # ERROR RESPONSE

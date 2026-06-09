@@ -68,8 +68,8 @@ def create_problem(
     # Database dependency
     db: Session = Depends(get_db),
 
-    # Enable this later if only admin can create
-    # admin: User = Depends(get_admin_user)
+    # Only admin can create problems
+    admin: User = Depends(get_admin_user)
 ):
 
     # Check whether problem already exists

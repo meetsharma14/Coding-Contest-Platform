@@ -290,4 +290,15 @@ def get_submission(
             "Submission not found"
         )
 
+    # Users can only view their own submissions
+    if submission.user_id != current_user.id:
+
+        raise HTTPException(
+
+            status_code=403,
+
+            detail=
+            "Access denied"
+        )
+
     return submission

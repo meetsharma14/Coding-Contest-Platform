@@ -2,6 +2,8 @@
 # FASTAPI IMPORTS
 # ==================================
 
+import os
+
 # Main FastAPI framework
 from fastapi import FastAPI
 
@@ -100,26 +102,30 @@ app = FastAPI(
 # requests for security reasons
 # ==================================
 
+ALLOWED_ORIGINS = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "http://localhost:8501,http://127.0.0.1:8501"
+).split(",")
+
 app.add_middleware(
 
     CORSMiddleware,
 
-    allow_origins=[
-
-        # Streamlit local server
-        "http://localhost:8501",
-
-        "http://127.0.0.1:8501"
-    ],
+    allow_origins=ALLOWED_ORIGINS,
 
     # Allow cookies/tokens
     allow_credentials=True,
 
-    # Allow all HTTP methods
-    allow_methods=["*"],
+    # Restrict to methods the API uses
+    allow_methods=[
+        "GET", "POST", "PUT", "DELETE"
+    ],
 
-    # Allow all request headers
-    allow_headers=["*"]
+    # Restrict to headers the API needs
+    allow_headers=[
+        "Authorization",
+        "Content-Type"
+    ]
 )
 
 
