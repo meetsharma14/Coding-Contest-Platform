@@ -12,6 +12,11 @@ from fastapi import (
 # SQLAlchemy database session
 from sqlalchemy.orm import Session
 
+# Logging
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Database dependency
 from database import get_db
 
@@ -151,12 +156,23 @@ def submit_solution(
         )
 
     # Run code in judge system
-    judge_result = run_python_code(
+    try:
 
-        submission.code,
+        judge_result = run_python_code(
 
-        test_cases
-    )
+            submission.code,
+
+            test_cases
+        )
+
+    except Exception as e:
+
+        logger.error("Judge execution failed: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Code evaluation failed due to a server error"
+        )
 
     # Create submission object
     new_submission = Submission(
@@ -187,11 +203,23 @@ def submit_solution(
         new_submission
     )
 
-    db.commit()
+    try:
 
-    db.refresh(
-        new_submission
-    )
+        db.commit()
+
+        db.refresh(
+            new_submission
+        )
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Submission save failed: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save submission due to a server error"
+        )
 
     return new_submission
 

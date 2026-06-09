@@ -66,20 +66,34 @@ def register():
             "password": password
         }
 
-        r = requests.post(
-            f"{API_BASE_URL}/users/register",
-            json=payload
-        )
+        try:
 
-        if r.status_code in [200,201]:
-
-            st.success(
-                "Registration successful"
+            r = requests.post(
+                f"{API_BASE_URL}/users/register",
+                json=payload
             )
 
-        else:
+            if r.status_code in [200,201]:
+
+                st.success(
+                    "Registration successful"
+                )
+
+            else:
+                st.error(
+                    r.text
+                )
+
+        except requests.exceptions.ConnectionError:
+
             st.error(
-                r.text
+                "Cannot connect to the server. Please try again later."
+            )
+
+        except requests.exceptions.RequestException as e:
+
+            st.error(
+                f"Request failed: {e}"
             )
 
 
@@ -107,31 +121,45 @@ def login():
             "password": password
         }
 
-        r = requests.post(
-            f"{API_BASE_URL}/users/login",
-            json=payload
-        )
+        try:
 
-        if r.status_code == 200:
-
-            data = r.json()
-
-            st.session_state.token = (
-                data["access_token"]
+            r = requests.post(
+                f"{API_BASE_URL}/users/login",
+                json=payload
             )
 
-            st.session_state.logged_in = True
+            if r.status_code == 200:
 
-            st.success(
-                "Login successful"
-            )
+                data = r.json()
 
-            st.rerun()
+                st.session_state.token = (
+                    data["access_token"]
+                )
 
-        else:
+                st.session_state.logged_in = True
+
+                st.success(
+                    "Login successful"
+                )
+
+                st.rerun()
+
+            else:
+
+                st.error(
+                    "Invalid credentials"
+                )
+
+        except requests.exceptions.ConnectionError:
 
             st.error(
-                "Invalid credentials"
+                "Cannot connect to the server. Please try again later."
+            )
+
+        except requests.exceptions.RequestException as e:
+
+            st.error(
+                f"Login failed: {e}"
             )
 
 
@@ -287,25 +315,39 @@ def admin_panel():
             "sample_output": sample_output
         }
 
-        r = requests.post(
-            f"{API_BASE_URL}/problems/",
-            json=payload
-        )
+        try:
 
-        if r.status_code in [200,201]:
-
-            st.success(
-                "Problem Added Successfully"
+            r = requests.post(
+                f"{API_BASE_URL}/problems/",
+                json=payload
             )
 
-            st.json(
-                r.json()
-            )
+            if r.status_code in [200,201]:
 
-        else:
+                st.success(
+                    "Problem Added Successfully"
+                )
+
+                st.json(
+                    r.json()
+                )
+
+            else:
+
+                st.error(
+                    r.text
+                )
+
+        except requests.exceptions.ConnectionError:
 
             st.error(
-                r.text
+                "Cannot connect to the server. Please try again later."
+            )
+
+        except requests.exceptions.RequestException as e:
+
+            st.error(
+                f"Failed to add problem: {e}"
             )
 
 

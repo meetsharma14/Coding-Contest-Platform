@@ -14,6 +14,14 @@ from fastapi import (
 # Database session
 from sqlalchemy.orm import Session
 
+# Database error handling
+from sqlalchemy.exc import IntegrityError
+
+# Logging
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Database connection dependency
 from database import get_db
 
@@ -117,13 +125,34 @@ def create_problem(
         new_problem
     )
 
-    # Save changes
-    db.commit()
+    try:
 
-    # Refresh object and get generated values
-    db.refresh(
-        new_problem
-    )
+        # Save changes
+        db.commit()
+
+        # Refresh object and get generated values
+        db.refresh(
+            new_problem
+        )
+
+    except IntegrityError:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Problem with this title already exists"
+        )
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Problem creation failed: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create problem due to a server error"
+        )
 
     return new_problem
 
@@ -274,7 +303,19 @@ def delete_problem(
         problem
     )
 
-    db.commit()
+    try:
+
+        db.commit()
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Problem deletion failed: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete problem due to a server error"
+        )
 
     return {
 

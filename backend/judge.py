@@ -5,6 +5,11 @@
 # Used for calculating execution time
 import time
 
+# Logging for judge errors
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ==================================
 # RUN PYTHON CODE
@@ -17,7 +22,7 @@ import time
 # containers for security
 # ==================================
 
-def run_python_code(code: str):
+def run_python_code(code: str, test_cases: list | None = None):
 
     """
     Temporary online judge.
@@ -70,11 +75,10 @@ def run_python_code(code: str):
             "runtime_ms": runtime_ms
         }
 
-    except Exception as e:
+    except SyntaxError as e:
 
         # ==================================
-        # ERROR RESPONSE
-        # If syntax/compilation fails
+        # SYNTAX ERROR RESPONSE
         # ==================================
 
         return {
@@ -86,4 +90,26 @@ def run_python_code(code: str):
             "runtime_ms": 0,
 
             "error": str(e)
+        }
+
+    except Exception as e:
+
+        # ==================================
+        # UNEXPECTED ERROR RESPONSE
+        # Log for debugging
+        # ==================================
+
+        logger.error(
+            "Unexpected judge error: %s", e
+        )
+
+        return {
+
+            "verdict": "Judge Error",
+
+            "score": 0,
+
+            "runtime_ms": 0,
+
+            "error": "Internal judge error"
         }

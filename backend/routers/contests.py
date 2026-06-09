@@ -15,6 +15,14 @@ from fastapi import (
 # Database session
 from sqlalchemy.orm import Session
 
+# Database error handling
+from sqlalchemy.exc import IntegrityError
+
+# Logging
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Database dependency
 from database import get_db
 
@@ -94,9 +102,30 @@ def create_contest(
     # Save in database
     db.add(new_contest)
 
-    db.commit()
+    try:
 
-    db.refresh(new_contest)
+        db.commit()
+
+        db.refresh(new_contest)
+
+    except IntegrityError:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Contest with this title already exists"
+        )
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Contest creation failed: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create contest due to a server error"
+        )
 
     return new_contest
 
@@ -218,6 +247,26 @@ def add_problem_to_contest(
             detail="Problem not found"
         )
 
+    # Check for duplicate link
+    existing_link = (
+
+        db.query(ContestProblem)
+
+        .filter(
+            ContestProblem.contest_id == contest_id,
+            ContestProblem.problem_id == problem_id
+        )
+
+        .first()
+    )
+
+    if existing_link:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Problem already added to this contest"
+        )
+
     # Create link table entry
     link = ContestProblem(
 
@@ -228,7 +277,28 @@ def add_problem_to_contest(
 
     db.add(link)
 
-    db.commit()
+    try:
+
+        db.commit()
+
+    except IntegrityError:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Problem already added to this contest"
+        )
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Failed to add problem to contest: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to add problem to contest due to a server error"
+        )
 
     return {
         "message":
@@ -277,7 +347,19 @@ def start_contest(
     # Change status
     contest.is_active = True
 
-    db.commit()
+    try:
+
+        db.commit()
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Failed to start contest: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to start contest due to a server error"
+        )
 
     return {
         "message":
@@ -326,7 +408,19 @@ def end_contest(
     # Change status
     contest.is_active = False
 
-    db.commit()
+    try:
+
+        db.commit()
+
+    except Exception as e:
+
+        db.rollback()
+        logger.error("Failed to end contest: %s", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to end contest due to a server error"
+        )
 
     return {
         "message":
